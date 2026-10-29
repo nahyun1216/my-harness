@@ -19,7 +19,7 @@
 |---|---|---|---|---|
 | 1 | 2026-10-27 (화) | 1장 It's Just a JSON Array | [`my_v1.py`](my_v1.py) | [01-json-array](notes/01-json-array.md) |
 | 2 | 2026-10-29 (목) | 2장 The Brain | [`my_brain.py`](my_brain.py) | [02-the-brain](notes/02-the-brain.md) |
-| 3 | 2026-10-29 (목) 예정 | 3장 Tools | 진행 중 | |
+| 3 | 2026-10-29 (목) ~ 진행 중 | 3장 Tools | [`my_v2.py`](my_v2.py) | [03-tools](notes/03-tools.md) (개념 퀴즈까지) |
 
 전체 일정과 회차별 과제: [CURRICULUM.md](CURRICULUM.md)
 
