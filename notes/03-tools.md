@@ -1,4 +1,4 @@
-# 3회차 — 3장 Tools: JSON을 함수에 연결하기 (2026-10-29)
+# 3회차 — 3장 Tools: JSON을 함수에 연결하기 (2026-10-29 ~ 2026-10-30)
 
 ## 3줄 요약
 - **고장**: 모델은 글자만 쓸 수 있다. "테스트 통과했는지 봐줘"라고 해도 추측만 한다.
@@ -96,5 +96,55 @@ my_v2.py
 
 원본 대비: `run_command` → `list_dir`(안전), `[tool_use]`/`[tool_result]` 출력, `[버려짐]` 표시, API 에러 출력.
 
-## 실습 관찰 (my_v2.py)
-(다음에 진행 — 작업 A~H, 퀴즈 7~11)
+## 내 질문 & 답
+
+### Q1. user = 나, assistant = 하네스 아닌가? 왜 user 가 도구를 실행한 것처럼 나와?
+아니다. **role 은 "모델 입장에서" 나눈 것.**
+- `assistant` = **모델 자신이 생성한 출력** (텍스트, tool_use). 하네스가 아님.
+- `user` = **모델 바깥에서 들어온 입력 전부**. 사람이 친 글 + 하네스가 넣은 tool_result.
+- **하네스는 role 이 아니다.** 배열을 관리하는 프로그램이라 배열에 등장하지 않음. 모든 메시지를 배열에 append 하는 건 하네스.
+
+| 배열의 메시지 | role | 내용을 만든 것 | 배열에 넣은 것 |
+|---|---|---|---|
+| "제일 큰 파일 읽어줘" | user | 나 | 하네스 |
+| tool_use list_dir | assistant | 모델 | 하네스 |
+| tool_result (목록) | user | 하네스 (`execute_tool` 실행 결과) | 하네스 |
+| "가장 큰 파일은 ..." | assistant | 모델 | 하네스 |
+
+```
+            ┌─────────── 하네스 (배열 관리, 도구 실행) ───────────┐
+  나 ──입력──▶│  user: 질문                                        │
+             │  assistant: tool_use   ◀── 모델 출력               │──▶ API (모델)
+             │  user: tool_result     ◀── execute_tool() 결과     │
+             │  assistant: 답변       ◀── 모델 출력               │
+  나 ◀─출력──│                                                     │
+             └─────────────────────────────────────────────────────┘
+```
+- `role: user` 는 "사람이 실행했다"가 아니라 **"모델이 만든 게 아니다(외부 입력이다)"** 라는 뜻.
+- Anthropic API 는 user ↔ assistant 두 역할만 번갈아 쓰는 형식이라 도구 결과도 user 쪽에 들어감. (OpenAI API 는 `role: "tool"` 을 따로 둠 → 형식상 약속일 뿐)
+- 그래서 3장 책에서 "the world answers on the user's channel" 이라고 표현함.
+
+## 실습 관찰 (my_v2.py, 2026-10-30)
+7. A("이 폴더에 뭐가 있어?")에서 모델이 고른 도구·인자?
+   - 내 답: `list_dir`, `path` 로 `.` 을 넘김.
+   - 보충: 정답. "이 폴더"를 모델이 스스로 `.`(현재 폴더)로 번역함. 메뉴판 description("List entries in a directory")만 보고 맞는 도구를 고른 것.
+8. C(없는 파일)에서 에러를 받은 모델의 반응?
+   - 내 답: 에러를 받아서 사용자에게 "찾을 수 없다"고 답함. 강제종료되지 않음.
+   - 보충: 정답. `execute_tool` 의 `except` 가 에러를 **글자**로 돌려줬기 때문에 프로그램도 배열도 살아있음. 루프가 있다면(4장) 모델이 `list_dir` 로 비슷한 이름을 찾아보는 식으로 **스스로 고치기**도 함.
+9. tool_use 와 tool_result 를 잇는 값?
+   - 내 답: `id` ↔ `tool_use_id`. 그래서 루핑도 가능.
+   - 보충: 정답. id 덕분에 주문이 여러 개여도 "어느 주문의 요리인지" 짝을 맞출 수 있음 (한 번에 여러 도구를 주문하는 병렬 호출도 가능). 다만 **루프 자체는 id가 아니라 코드**가 만든다 — "모델이 또 주문하면 또 실행" 을 반복하는 while 문 (4장).
+10. G 다음 질문(H)에서 무슨 일이?
+   - 결과: `[API ERROR 400] messages.4: tool_use ids were found without tool_result blocks immediately after`
+   - 보충: tool_use 에 대응하는 tool_result 가 없는 배열을 보내서 API 가 거절한 것.
+     ```
+     [0] user      : 제일 큰 파일 읽어줘
+     [1] assistant : tool_use list_dir(".")                         id=A
+     [2] user      : tool_result (폴더 목록)                          tool_use_id=A  ✅
+     [3] assistant : "CURRICULUM.md 읽겠습니다" + tool_use read_file  id=B
+     [4] user      : "ㅇㅇ??"                    ← tool_use_id=B 인 tool_result 가 없음 ❌
+     ```
+     API 규칙: **assistant 메시지에 tool_use 가 있으면, 바로 다음 user 메시지에 같은 id 의 tool_result 가 있어야 한다.** v2 는 [3]의 read_file 을 실행하지 않고 다음 입력으로 넘어갔으므로 규칙 위반 → 400.
+     [3]이 배열에 그대로 남아 있어서 이후 모든 요청이 같은 에러. `/quit` 후 새로 시작해야 함.
+     → 교훈: 배열 형식을 API 규칙에 맞게 유지하는 건 **하네스의 책임**. 4장 루프는 응답에 tool_use 가 있는 동안 계속 실행 → tool_result 추가 → 재호출을 반복하므로 이 상태가 생기지 않음.
+11. (보너스) E(1+1), F(파이썬 버전)에서의 행동? — 건너뜀

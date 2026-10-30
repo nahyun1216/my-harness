@@ -24,7 +24,7 @@
 |---|---|---|---|---|
 | 1 | 10/27 화 | 1장 It's Just a JSON Array | `./check.sh`로 키 확인 → `./run.sh v1` 실행 → `my_v1.py` 직접 작성. 매 턴 `messages` 배열을 `json.dumps(indent=2)`로 출력해보기 | [x] |
 | 2 | 10/28 수 | 2장 The Brain | 같은 질문을 system 프롬프트만 바꿔 3번 보내고 차이 기록. 응답의 `usage`(input/output 토큰) 출력 추가 | [x] 10/29 |
-| 3 | 10/29 목 | 3장 Tools | `./run.sh v2` 실행 → `my_v2.py`에 도구 2개(`read_file`, `list_dir`) 직접 추가. 에러를 모델에게 되돌려주기 | [ ] |
+| 3 | 10/29 목 | 3장 Tools | `./run.sh v2` 실행 → `my_v2.py`에 도구 2개(`read_file`, `list_dir`) 직접 추가. 에러를 모델에게 되돌려주기 | [x] 10/30 |
 | 4 | 10/30 금 | 4장 The Agent Loop | `my_v3.py`: `stop_reason == "tool_use"`인 동안 도는 루프. 최대 반복 횟수 가드 추가 | [ ] |
 | 5 | 11/2 월 | 5장 Caching | `cache_control` 넣고 `cache_read_input_tokens` 비교. system/tools 순서를 바꾸면 캐시가 깨지는지 실험 | [ ] |
 
